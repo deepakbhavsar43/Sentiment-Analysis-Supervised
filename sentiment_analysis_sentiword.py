@@ -219,6 +219,32 @@ def visualize_words(txt):
     plt.axis("off")
     plt.show()
 
+def count_sentiment(dataset, column_name):
+    # column_name = column_name
+    count = {}
+    # temp = 'Actual_sentiment'
+    for i in [-1, 0, 1]:
+        act = dataset[dataset[column_name] == i]
+        total = len(act)
+        count[i] = total
+    return count
+
+def plt_pie(sentiment_count):
+    count = sentiment_count
+    x = sentiment_count.values()
+    x = list(x)
+    y = sentiment_count.keys()
+    y = list(y)
+    # Data to plot
+    labels = y
+    st.write(labels)
+    sizes = x
+    colors = ['gold', 'yellowgreen', 'lightcoral']
+    explode = (0.1, 0.1, 0)  # explode 1st slice
+    # Plot
+    plt.pie(sizes, explode=explode, labels=labels, colors=colors, autopct='%1.1f%%', shadow=True, startangle=140)
+    plt.axis('equal')
+    plt.show()
 
 def wr_pickle(train, model):
     # creating pickle file
@@ -252,6 +278,7 @@ if __name__ == "__main__":
     actual_sentiment = list(dataset['sentiment'])
     st.sidebar.header('Dataset')
     view_data = st.sidebar.checkbox("View initial data")
+    data_ratio = st.sidebar.checkbox("View data ratio")
     # pos_data = st.sidebar.checkbox("View positive text")
     # neu_data = st.sidebar.checkbox("View neutral text")
     # neg_data = st.sidebar.checkbox("View negative text")
@@ -265,6 +292,10 @@ if __name__ == "__main__":
 
     if view_data:
         st.write(df_copy)
+
+    if data_ratio == True:
+        st.write("Ratio of data")
+        st.pyplot(plt_pie(count_sentiment(dataset, 'sent_score')))
 
     # visualize words
     pos_text, neg_text, neut_text = classify_text()

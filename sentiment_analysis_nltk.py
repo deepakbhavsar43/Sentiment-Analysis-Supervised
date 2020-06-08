@@ -199,7 +199,7 @@ class sentiment_analysis:
 if __name__ == "__main__":
 
     CSVFileName = "Dataset/Sentiment.csv"
-    Trained_Model_File = "Trained_Model/nltk_model/trained_model/"
+    Trained_Model_File = "Trained_Model/nltk_model/trained_model"
     predicted_ratio = None
     actual_ratio = None
     prediction = '\nTrain model after selecting \"show test result\".'

@@ -215,65 +215,71 @@ if __name__ == "__main__":
 
     #   streamlit elements ans variables
     st.title("Sentiment Analysis Application")
+    st.sidebar.info("Supervised Model.")
+    # st.info("This model use supervised machine learning technique.")
+
+    st.sidebar.subheader('Navigate to')
+    page =st.sidebar.selectbox("", ["Training and Testing", "Prediction"])
     actual_sentiment = list(dataset['sentiment'])
-    st.sidebar.header('Data')
-    view_data = st.sidebar.checkbox("View initial data")
-    data_ratio = st.sidebar.checkbox("View data ratio")
 
-    st.sidebar.subheader("Train Model")
-    train_button = st.sidebar.button("Train")
-    st.sidebar.subheader("Predict sentiment")
-    test_result = st.sidebar.checkbox("Show test result")
-    test_button = st.sidebar.button("Test")
+    if page == "Training and Testing":
+        st.sidebar.subheader('Data')
+        view_data = st.sidebar.checkbox("View initial data")
+        data_ratio = st.sidebar.checkbox("View data ratio")
 
+        st.sidebar.subheader("Train Model")
+        train_button = st.sidebar.button("Train")
+        st.sidebar.subheader("Test Model")
+        test_result = st.sidebar.checkbox("Show test result")
+        test_button = st.sidebar.button("Test")
+        if view_data == True:
+            st.write(sentiment.data)
 
-    if view_data == True:
-        st.write(sentiment.data)
+        if data_ratio == True:
+            st.write("Ratio of data")
+            st.pyplot(sentiment.plt_pie(sentiment.count_sentiment(dataset, 'sentiment')))
 
-    if data_ratio == True:
-        st.write("Ratio of data")
-        st.pyplot(sentiment.plt_pie(sentiment.count_sentiment(dataset, 'sentiment')))
+        if train_button == True:
+            with st.spinner('Training model...'):
+                classifier = sentiment.train_model(tweets)
+                sentiment.wr_pickle(classifier, Trained_Model_File)
+                st.success("Model training successful")
 
-    if train_button == True:
-        with st.spinner('Training model...'):
-            classifier = sentiment.train_model(tweets)
-            sentiment.wr_pickle(classifier, Trained_Model_File)
-            st.success("Model training successful")
+        if test_button == True:
+            prediction = None
+            with st.spinner('Testing Model'):
+                classifier = sentiment.rd_pickle(Trained_Model_File)
+                prediction = sentiment.test_model(classifier, test)
+                # st.write(prediction)
+                st.success("data analysed. sentimented predicted")
+                sentiment.acc_score()
+                # actual_ratio, predicted_ratio = sentiment.total_sentiment(prediction)
+                actual_ratio = sentiment.count_sentiment(prediction, 'Actual_sentiment')
+                predicted_ratio = sentiment.count_sentiment(prediction, 'Predicted_sentiment')
+                # st.write(actual_ratio)
+                # st.write(predicted_ratio)
 
-    if test_button == True:
-        prediction = None
-        with st.spinner('Testing Model'):
+        if test_result == True:
+            # st.warning("Train model after selecting option \"show sentiment.\"")
+            # if type(prediction) == 'NoneType':
+            #     pass
+            # else:
+            st.write(prediction)
+
+    if page == "Prediction":
+        data_in = st.text_input("Enter text to predicts its sentiment:")
+        data_in = data_in.split("\n")
+        txt_area = pd.DataFrame({
+            "text":data_in
+        })
+
+        if st.button("Predict") == True:
             classifier = sentiment.rd_pickle(Trained_Model_File)
-            prediction = sentiment.test_model(classifier, test)
-            # st.write(prediction)
-            st.success("data analysed. sentimented predicted")
-            sentiment.acc_score()
-            # actual_ratio, predicted_ratio = sentiment.total_sentiment(prediction)
-            actual_ratio = sentiment.count_sentiment(prediction, 'Actual_sentiment')
-            predicted_ratio = sentiment.count_sentiment(prediction, 'Predicted_sentiment')
-            # st.write(actual_ratio)
-            # st.write(predicted_ratio)
-
-    if test_result == True:
-        # st.warning("Train model after selecting option \"show sentiment.\"")
-        # if type(prediction) == 'NoneType':
-        #     pass
-        # else:
-        st.write(prediction)
-
-    data_in = st.text_input("Enter text to predicts its sentiment:")
-    data_in = data_in.split("\n")
-    txt_area = pd.DataFrame({
-        "text":data_in
-    })
-
-    if st.button("Predict") == True:
-        classifier = sentiment.rd_pickle(Trained_Model_File)
-        prediction = sentiment.predict_sentiment(classifier, txt_area)
-        if prediction == "Positive":
-            st.success("Tweet is Positive")
-        elif prediction == "Neutral":
-            st.warning("Tweet is Neutral")
-        elif prediction == "Negative":
-            st.error("Tweet is Negative")
-        st.balloons()
+            prediction = sentiment.predict_sentiment(classifier, txt_area)
+            if prediction == "Positive":
+                st.success("Tweet is Positive")
+            elif prediction == "Neutral":
+                st.warning("Tweet is Neutral")
+            elif prediction == "Negative":
+                st.error("Tweet is Negative")
+            st.balloons()

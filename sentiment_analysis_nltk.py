@@ -245,7 +245,7 @@ if __name__ == "__main__":
     threshold = 160
     # sentiment.wordcloud_draw(train_pos)
     train, test = sentiment.split_dataset()
-    st.write(len(train), len(test))
+    # st.write(len(train), len(test))
     tweets = sentiment.clean_data(train)
     w_features = sentiment.get_word_features(tweets)
     actual_ratio, predicted_ratio = {}, {}

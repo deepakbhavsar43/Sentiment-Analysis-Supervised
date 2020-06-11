@@ -263,7 +263,7 @@ def rd_pickle(model):
 
 
 if __name__ == "__main__":
-    path = 'Dataset/Sentiment.csv'
+    path = 'Dataset/Dataset.csv'
     Trained_Model_File = 'Trained_Model/sentiwordnet_model/trained_model'
     dataset = read_data()
     df = clean_data(dataset)

@@ -1,13 +1,15 @@
+import nltk
+import pickle
+import pandas as pd
+import streamlit as st
+from csv import DictWriter
+import matplotlib.pyplot as plt
+from nltk.corpus import stopwords
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
-# from wordcloud import WordCloud, STOPWORDS
-from nltk.corpus import stopwords
-import matplotlib.pyplot as plt
+
 # from userInput import *
-import streamlit as st
-import pandas as pd
-import pickle
-import nltk
+from wordcloud import WordCloud, STOPWORDS
 
 
 class sentiment_analysis:
@@ -18,6 +20,7 @@ class sentiment_analysis:
         self.data = self.data[['text', 'sentiment']]
         # self.data = sentiment_analysis.choose_ratio(self.data)
 
+    # to use only small amount of data for training and testing model
     def choose_ratio(self):
         tweet = []
         sentiment = []
@@ -34,8 +37,8 @@ class sentiment_analysis:
         })
         return self.data
 
+    # Splitting the dataset into train and test set
     def split_data(self):
-        # Splitting the dataset into train and test set
         self.train, self.test = train_test_split(self.data, test_size=0.1)
         return self.data, self.train, self.test
 
@@ -59,6 +62,34 @@ class sentiment_analysis:
 
     #         print(cleaned_word)
 
+    def split_dataset(self, threshold=160):
+        text_train, sent_train = [], []
+        text_test, sent_test = [], []
+        for s in ['Negative', 'Neutral', 'Positive']:
+            temp = self.data[self.data['sentiment'] == s]
+            length = len(temp)
+            for i in range(0, length):
+                txt = temp.iloc[i]['text']
+                sent = temp.iloc[i]['sentiment']
+                if i <= (length - threshold):
+                    text_train.append(txt)
+                    sent_train.append(sent)
+                else:
+                    text_test.append(txt)
+                    sent_test.append(sent)
+
+            train = pd.DataFrame({
+                "text":text_train,
+                "sentiment":sent_train
+            })
+
+            test = pd.DataFrame({
+                "text": text_test,
+                "sentiment": sent_test
+            })
+        return train, test
+
+    # seperates all the positive negative and neutral tweets
     def separate(self, data):
         positive = data[data['sentiment'] == 'Positive']
         positive = positive['text']
@@ -68,6 +99,7 @@ class sentiment_analysis:
         negative = negative['text']
         return positive, neutral, negative
 
+    # removes mentions, links, RT and hashtags from tweets
     def clean_data(self, data):
         tweets = []
         stopwords_set = set(stopwords.words("english"))
@@ -100,13 +132,14 @@ class sentiment_analysis:
             features['contains(%s)' % word] = (word in document_words)
         return features
 
+    # Training the Naive Bayes classifier
     @st.cache
     def train_model(self, tweets):
-        # Training the Naive Bayes classifier
         training_set = nltk.classify.apply_features(sentiment.extract_features, tweets)
         classifier = nltk.NaiveBayesClassifier.train(training_set)
         return classifier
 
+    # To test model on test data
     @st.cache
     def test_model(self, classifier, data):
         neg_cnt = 0
@@ -125,6 +158,7 @@ class sentiment_analysis:
         self.result = pd.DataFrame(self.result)
         return self.result
 
+    # to make predictions on unseen data
     @st.cache
     def predict_sentiment(self, classifier, data):
         for i in range(len(data)):
@@ -133,6 +167,7 @@ class sentiment_analysis:
 
         return label
 
+    # To store the trained model in pickel file
     def wr_pickle(self, train, model):
         # creating pickle file
         outfile = open(model, 'wb')
@@ -140,6 +175,7 @@ class sentiment_analysis:
         pickle.dump(train, outfile)
         outfile.close()
 
+    # To read stored model in pickel file
     def rd_pickle(self, model):
         # opening pickle file
         infile = open(model, 'rb')
@@ -147,26 +183,13 @@ class sentiment_analysis:
         self.newTraining = pickle.load(infile)
         return self.newTraining
 
+    # to calculate the accuracy of the model
     def acc_score(self):
         actual = self.result["Actual_sentiment"]
         predicted = self.result["Predicted_sentiment"]
         st.write("\nAccuracy of the model : ", (accuracy_score(actual, predicted)) * 100)
 
-    # def total_sentiment(self, dataset):
-    #     actual_number = {}
-    #     temp = 'Actual_sentiment'
-    #     for i in ['Positive', 'Negative', "Neutral"]:
-    #         act = dataset[dataset[temp] == i]
-    #         total = len(act)
-    #         actual_number[i] = total
-    #
-    #     predicted_number = {}
-    #     for i in ['Positive', 'Negative', "Neutral"]:
-    #         pred = dataset[dataset['Predicted_sentiment'] == i]
-    #         total = len(pred)
-    #         predicted_number[i] = total
-    #     return actual_number, predicted_number
-
+    #  To calculate total number of positive, negative and neutral tweet
     def count_sentiment(self, dataset, column_name):
         self.column_name = column_name
         count = {}
@@ -176,8 +199,6 @@ class sentiment_analysis:
             total = len(act)
             count[i] = total
         return count
-
-
 
     def plt_pie(self, sentiment_count):
         self.count = sentiment_count
@@ -195,20 +216,36 @@ class sentiment_analysis:
         plt.axis('equal')
         plt.show()
 
+    def append_dict_as_row(self, file_name, dict_of_elem, field_names):
+        # Open file in append mode
+        with open(file_name, 'a+') as write_obj:
+            # Create a writer object from csv module
+            dict_writer = DictWriter(write_obj, fieldnames=field_names)
+            # Add dictionary as wor in the csv
+            dict_writer.writerow(dict_of_elem)
+
+
+def find_min(dict):
+    dict_values = dict.values()
+    return min(dict_values)
+
 
 if __name__ == "__main__":
 
-    CSVFileName = "Dataset/Sentiment.csv"
+    CSVFileName = "Dataset/Dataset.csv"
+    CSVPredictions = "Dataset/Predictions.csv"
     Trained_Model_File = "Trained_Model/nltk_model/trained_model"
     predicted_ratio = None
     actual_ratio = None
     prediction = '\nTrain model after selecting \"show test result\".'
+    # prediction = None
 
     sentiment = sentiment_analysis(CSVFileName)
     # sentiment.choose_ratio()
-    dataset, train, test = sentiment.split_data()
-    # train_pos, train_neut, train_neg = sentiment.separate(train)
-    #     sentiment.wordcloud_draw(train_pos)
+    threshold = 160
+    # sentiment.wordcloud_draw(train_pos)
+    train, test = sentiment.split_dataset()
+    st.write(len(train), len(test))
     tweets = sentiment.clean_data(train)
     w_features = sentiment.get_word_features(tweets)
     actual_ratio, predicted_ratio = {}, {}
@@ -219,8 +256,8 @@ if __name__ == "__main__":
     # st.info("This model use supervised machine learning technique.")
 
     st.sidebar.subheader('Navigate to')
-    page =st.sidebar.selectbox("", ["Training and Testing", "Prediction"])
-    actual_sentiment = list(dataset['sentiment'])
+    page = st.sidebar.selectbox("", ["Training and Testing", "Prediction"])
+    actual_sentiment = list(sentiment.data['sentiment'])
 
     if page == "Training and Testing":
         st.sidebar.subheader('Data')
@@ -228,8 +265,10 @@ if __name__ == "__main__":
         data_ratio = st.sidebar.checkbox("View data ratio")
 
         st.sidebar.subheader("Train Model")
+        view_traindata = st.sidebar.checkbox("Training Data")
         train_button = st.sidebar.button("Train")
         st.sidebar.subheader("Test Model")
+        view_testdata = st.sidebar.checkbox("Testing Data")
         test_result = st.sidebar.checkbox("Show test result")
         test_button = st.sidebar.button("Test")
         if view_data == True:
@@ -237,7 +276,7 @@ if __name__ == "__main__":
 
         if data_ratio == True:
             st.write("Ratio of data")
-            st.pyplot(sentiment.plt_pie(sentiment.count_sentiment(dataset, 'sentiment')))
+            st.pyplot(sentiment.plt_pie(sentiment.count_sentiment(sentiment.data, 'sentiment')))
 
         if train_button == True:
             with st.spinner('Training model...'):
@@ -253,29 +292,30 @@ if __name__ == "__main__":
                 # st.write(prediction)
                 st.success("data analysed. sentimented predicted")
                 sentiment.acc_score()
-                # actual_ratio, predicted_ratio = sentiment.total_sentiment(prediction)
                 actual_ratio = sentiment.count_sentiment(prediction, 'Actual_sentiment')
                 predicted_ratio = sentiment.count_sentiment(prediction, 'Predicted_sentiment')
                 # st.write(actual_ratio)
                 # st.write(predicted_ratio)
 
-        if test_result == True:
-            # st.warning("Train model after selecting option \"show sentiment.\"")
-            # if type(prediction) == 'NoneType':
-            #     pass
-            # else:
-            st.write(prediction)
+            if test_result == True:
+                st.write(prediction)
 
     if page == "Prediction":
         data_in = st.text_input("Enter text to predicts its sentiment:")
         data_in = data_in.split("\n")
         txt_area = pd.DataFrame({
-            "text":data_in
+            "text": data_in
         })
 
         if st.button("Predict") == True:
             classifier = sentiment.rd_pickle(Trained_Model_File)
+            st.write(prediction)
             prediction = sentiment.predict_sentiment(classifier, txt_area)
+
+            field_names = ['text', 'sentiment']
+            row_dict = {'text': data_in[0], 'sentiment': prediction}
+            sentiment.append_dict_as_row(CSVPredictions, row_dict, field_names)
+
             if prediction == "Positive":
                 st.success("Tweet is Positive")
             elif prediction == "Neutral":

@@ -312,9 +312,10 @@ if __name__ == "__main__":
             st.write(prediction)
             prediction = sentiment.predict_sentiment(classifier, txt_area)
 
-            field_names = ['text', 'sentiment']
-            row_dict = {'text': data_in[0], 'sentiment': prediction}
-            sentiment.append_dict_as_row(CSVPredictions, row_dict, field_names)
+            # To write prediction data into csv
+            # field_names = ['text', 'sentiment']
+            # row_dict = {'text': data_in[0], 'sentiment': prediction}
+            # sentiment.append_dict_as_row(CSVPredictions, row_dict, field_names)
 
             if prediction == "Positive":
                 st.success("Tweet is Positive")

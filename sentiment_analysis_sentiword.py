@@ -247,82 +247,84 @@ if __name__ == "__main__":
     df = rm_stopwords(df)
 
     # streamlit elements ans variables
-    st.title("Sentiment Analysis Application (Semi-Supervised)")
-    st.header("Semi-Supervised")
+    st.title("Sentiment Analysis Application")
+    st.sidebar.info("Semi-Supervised Model.")
+    st.sidebar.subheader('Navigate to')
+    page = st.sidebar.selectbox("", ["Training and Testing", "Prediction"])
     actual_sentiment = list(dataset['sentiment'])
-    st.sidebar.header('Dataset')
-    view_data = st.sidebar.checkbox("View initial data")
     # pos_data = st.sidebar.checkbox("View positive text")
     # neu_data = st.sidebar.checkbox("View neutral text")
     # neg_data = st.sidebar.checkbox("View negative text")
-    # data_ratio = st.sidebar.checkbox("View data ratio")
+    # sentiment_ratio = st.sidebar.checkbox("View data ratio")
+    if page == "Training and Testing":
+        st.sidebar.header('Data')
+        view_data = st.sidebar.checkbox("View dataset")
+        st.sidebar.subheader("Train Model")
+        train_button = st.sidebar.button("Train")
+        st.sidebar.subheader("Test Model")
+        # test_result = st.sidebar.checkbox("Show test result")
+        test_button = st.sidebar.button("Test")
 
-    st.sidebar.subheader("Train Model")
-    train_button = st.sidebar.button("Train")
-    st.sidebar.subheader("Predict sentiment")
-    # test_result = st.sidebar.checkbox("Show test result")
-    test_button = st.sidebar.button("Test")
+        if view_data:
+            st.write(df_copy)
+        # visualize words
+        pos_text, neg_text, neut_text = classify_text()
 
-    if view_data:
-        st.write(df_copy)
+        # if pos_data:
+        #     st.pyplot(visualize_words(pos_text))
+        #
+        # if neu_data:
+        #     st.pyplot(visualize_words(neg_text))
+        #
+        # if neg_data:
+        #     st.pyplot(visualize_words(neut_text))
 
-    # visualize words
-    pos_text, neg_text, neut_text = classify_text()
+        # split data
+        x = df.text
+        y = df.sent_score
+        SEED = 4
+        x_train, x_val_test, y_train, y_val_test = train_test_split(x, y, test_size=0.1, random_state=SEED)
+        x_val, x_test, y_val, y_test = train_test_split(x_val_test, y_val_test, test_size=0.5, random_state=SEED)
 
-    # if pos_data:
-    #     st.pyplot(visualize_words(pos_text))
-    #
-    # if neu_data:
-    #     st.pyplot(visualize_words(neg_text))
-    #
-    # if neg_data:
-    #     st.pyplot(visualize_words(neut_text))
+        if train_button == True:
+            with st.spinner('Training model...'):
+                classifiers = [LinearSVC()]
+                clf_names = ['LinearSVC()']
+                gram = 3
+                data = []
+                for clf in classifiers:
+                    cv = CountVectorizer(ngram_range=(1, gram))  # gram3 = 3
+                    model = make_pipeline(cv, clf)
+                    mlmodel = model.fit(x_train.values.astype('U'), y_train.values.astype('U'))
+                    wr_pickle(mlmodel, Trained_Model_File)
+            st.success("Model training successful")
 
-    # split data
-    x = df.text
-    y = df.sent_score
-    SEED = 4
-    x_train, x_val_test, y_train, y_val_test = train_test_split(x, y, test_size=0.1, random_state=SEED)
-    x_val, x_test, y_val, y_test = train_test_split(x_val_test, y_val_test, test_size=0.5, random_state=SEED)
+        if test_button == True:
+            with st.spinner('Testing model...'):
+                model = rd_pickle(Trained_Model_File)
+                labels = model.predict(x_val.values.astype('U'))
+                ac = accuracy_score(y_val.values.astype('U'), labels)
+                st.success("data analysed. sentimented predicted")
+                st.write("\nAccuracy of the model : ", ac*100)
 
-    if train_button == True:
-        with st.spinner('Training model...'):
-            classifiers = [LinearSVC()]
-            clf_names = ['LinearSVC()']
-            gram = 3
-            data = []
-            for clf in classifiers:
-                cv = CountVectorizer(ngram_range=(1, gram))  # gram3 = 3
-                model = make_pipeline(cv, clf)
-                mlmodel = model.fit(x_train.values.astype('U'), y_train.values.astype('U'))
-                wr_pickle(mlmodel, Trained_Model_File)
-        st.success("Model training successful")
+    if page == "Prediction":
+        txt_area = st.text_input("Enter text to predicts its sentiment:")
+        txt_area = txt_area.split("\n")
+        # data_in = np.array(data_in)
+        txt_area = pd.Series(np.array(txt_area))
+        # st.write(type(txt_area))
 
-    if test_button == True:
-        with st.spinner('Testing model...'):
+        if st.button("Predict"):
             model = rd_pickle(Trained_Model_File)
-            labels = model.predict(x_val.values.astype('U'))
-            ac = accuracy_score(y_val.values.astype('U'), labels)
-            st.success("data analysed. sentimented predicted")
-            st.write("\nAccuracy of the model : ", ac*100)
-
-    txt_area = st.text_input("Enter text to predicts its sentiment:")
-    txt_area = txt_area.split("\n")
-    # data_in = np.array(data_in)
-    txt_area = pd.Series(np.array(txt_area))
-    # st.write(type(txt_area))
-
-    if st.button("Predict"):
-        model = rd_pickle(Trained_Model_File)
-        prediction = model.predict(txt_area)
-        st.write(prediction[0])
-        if prediction[0] == "1":
-            st.success("Tweet is Positive")
-        elif prediction == "0":
-            st.warning("Tweet is Neutral")
-        elif prediction == "-1":
-            st.error("Tweet is Negative")
-        st.balloons()
+            prediction = model.predict(txt_area)
+            st.write(prediction[0])
+            if prediction[0] == "1":
+                st.success("Tweet is Positive")
+            elif prediction == "0":
+                st.warning("Tweet is Neutral")
+            elif prediction == "-1":
+                st.error("Tweet is Negative")
+            st.balloons()
 
     # df = pd.DataFrame({
     #     "full_text": ["I am Deepak. I have developed this project during my internship. i am so happy."]

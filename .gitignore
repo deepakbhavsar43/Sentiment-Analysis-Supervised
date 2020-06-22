@@ -1,5 +1,8 @@
 # custom folder setting
-cell_images
+Private
+
+# files
+sentiment-analysis-nltk-firebase-adminsdk-e9mtv-df71fd1b96.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

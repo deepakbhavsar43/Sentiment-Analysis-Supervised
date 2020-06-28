@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 from csv import DictWriter
 import matplotlib.pyplot as plt
+from firebase import firebase
 from nltk.corpus import stopwords
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
@@ -40,7 +41,7 @@ class sentiment_analysis:
     # Splitting the dataset into train and test set
     def split_data(self):
         self.train, self.test = train_test_split(self.data, test_size=0.1)
-        return self.data, self.train, self.test
+        return self.train, self.test
 
     # def wordcloud_draw(self, data, color='black'):
     #     words = ' '.join(data)
@@ -184,7 +185,8 @@ class sentiment_analysis:
         return self.newTraining
 
     # to calculate the accuracy of the model
-    def acc_score(self):
+    def acc_score(self, result):
+        self.result = result
         actual = self.result["Actual_sentiment"]
         predicted = self.result["Predicted_sentiment"]
         st.write("\nAccuracy of the model : ", (accuracy_score(actual, predicted)) * 100)
@@ -232,19 +234,19 @@ def find_min(dict):
 
 if __name__ == "__main__":
 
-    CSVFileName = "Dataset/Dataset.csv"
-    CSVPredictions = "Dataset/Predictions.csv"
+    csv_dataset = "Dataset/Sentiment.csv"
     Trained_Model_File = "Trained_Model/nltk_model/trained_model"
     predicted_ratio = None
     actual_ratio = None
     prediction = '\nTrain model after selecting \"show test result\".'
     # prediction = None
 
-    sentiment = sentiment_analysis(CSVFileName)
+    sentiment = sentiment_analysis(csv_dataset)
     # sentiment.choose_ratio()
     threshold = 160
     # sentiment.wordcloud_draw(train_pos)
-    train, test = sentiment.split_dataset()
+    train, test = sentiment.split_data()
+    # length of train data and test data
     # st.write(len(train), len(test))
     tweets = sentiment.clean_data(train)
     w_features = sentiment.get_word_features(tweets)
@@ -261,8 +263,8 @@ if __name__ == "__main__":
 
     if page == "Training and Testing":
         st.sidebar.subheader('Data')
-        view_data = st.sidebar.checkbox("View initial data")
-        data_ratio = st.sidebar.checkbox("View data ratio")
+        view_data = st.sidebar.checkbox("View dataset")
+        sentiment_ratio = st.sidebar.checkbox("View sentiment ratio")
 
         st.sidebar.subheader("Train Model")
         view_traindata = st.sidebar.checkbox("Training Data")
@@ -272,11 +274,17 @@ if __name__ == "__main__":
         test_result = st.sidebar.checkbox("Show test result")
         test_button = st.sidebar.button("Test")
         if view_data == True:
-            st.write(sentiment.data)
+            st.write("Dataset :",sentiment.data)
 
-        if data_ratio == True:
-            st.write("Ratio of data")
+        if sentiment_ratio == True:
+            st.write("Ratio of sentiment :")
             st.pyplot(sentiment.plt_pie(sentiment.count_sentiment(sentiment.data, 'sentiment')))
+
+        if view_traindata:
+            st.write("Training data :", train)
+
+        if view_testdata:
+            st.write("Testing data :", test)
 
         if train_button == True:
             with st.spinner('Training model...'):
@@ -291,7 +299,7 @@ if __name__ == "__main__":
                 prediction = sentiment.test_model(classifier, test)
                 # st.write(prediction)
                 st.success("data analysed. sentimented predicted")
-                sentiment.acc_score()
+                sentiment.acc_score(prediction)
                 actual_ratio = sentiment.count_sentiment(prediction, 'Actual_sentiment')
                 predicted_ratio = sentiment.count_sentiment(prediction, 'Predicted_sentiment')
                 # st.write(actual_ratio)
@@ -309,14 +317,16 @@ if __name__ == "__main__":
 
         if st.button("Predict") == True:
             classifier = sentiment.rd_pickle(Trained_Model_File)
-            st.write(prediction)
             prediction = sentiment.predict_sentiment(classifier, txt_area)
-
-            # To write prediction data into csv
-            # field_names = ['text', 'sentiment']
-            # row_dict = {'text': data_in[0], 'sentiment': prediction}
-            # sentiment.append_dict_as_row(CSVPredictions, row_dict, field_names)
-
+            pred_data = {
+                "text": data_in[0],
+                "sentiment": prediction
+            }
+            try:
+                firebase = firebase.FirebaseApplication("https://sentiment-analysis-nltk.firebaseio.com/", None)
+                firebase.post('/sentiment-analysis-nltk/userPredictions', pred_data)
+            except:
+                st.warning("Connection Error : could not able to connect to the internet. check connection.")
             if prediction == "Positive":
                 st.success("Tweet is Positive")
             elif prediction == "Neutral":

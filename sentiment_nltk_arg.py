@@ -7,7 +7,7 @@ from wordcloud import WordCloud, STOPWORDS
 import matplotlib.pyplot as plt
 from subprocess import check_output
 
-data = pd.read_csv('Dataset/Sentiment.csv')
+data = pd.read_csv('Dataset/Dataset.csv')
 # Keeping only the neccessary columns
 data = data[['text', 'sentiment']]
 

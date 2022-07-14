@@ -317,12 +317,12 @@ if __name__ == "__main__":
         if st.button("Predict"):
             model = rd_pickle(Trained_Model_File)
             prediction = model.predict(txt_area)
-            st.write(prediction[0])
+            # st.write(prediction[0])
             if prediction[0] == "1":
                 st.success("Tweet is Positive")
-            elif prediction == "0":
+            elif prediction[0] == "0":
                 st.warning("Tweet is Neutral")
-            elif prediction == "-1":
+            elif prediction[0] == "-1":
                 st.error("Tweet is Negative")
             st.balloons()
 

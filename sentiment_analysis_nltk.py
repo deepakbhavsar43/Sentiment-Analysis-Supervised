@@ -322,8 +322,11 @@ if __name__ == "__main__":
                 "text": data_in[0],
                 "sentiment": prediction
             }
-            firebase = firebase.FirebaseApplication("https://sentiment-analysis-nltk.firebaseio.com/", None)
-            firebase.post('/sentiment-analysis-nltk/userPredictions', pred_data)
+            try:
+                firebase = firebase.FirebaseApplication("https://sentiment-analysis-nltk.firebaseio.com/", None)
+                firebase.post('/sentiment-analysis-nltk/userPredictions', pred_data)
+            except:
+                st.warning("Connection Error : could not able to connect to the internet. check connection.")
             if prediction == "Positive":
                 st.success("Tweet is Positive")
             elif prediction == "Neutral":

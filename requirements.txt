@@ -12,3 +12,4 @@ gcloud
 sseclient
 pycrypto
 requests-toolbelt
+six
